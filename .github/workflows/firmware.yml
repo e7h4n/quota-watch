@@ -1,0 +1,43 @@
+name: StopWatch firmware
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: espressif/idf:v5.5.2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and validate native application
+        shell: bash
+        working-directory: firmware
+        run: |
+          set -eo pipefail
+          source "$IDF_PATH/export.sh"
+          version="v0.1.${GITHUB_RUN_NUMBER}"
+          python fetch_drivers.py
+          idf.py -DIDF_TARGET=esp32s3 -DPROJECT_VER="$version" build
+          mkdir ../dist
+          image="../dist/quota-watch-$version-esp32s3.bin"
+          cp build/quota_watch.bin "$image"
+          python ../tools/package.py "$image" "$version" "$GITHUB_REPOSITORY"
+          (cd ../dist && sha256sum *.bin > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quota-watch-native
+          path: dist
+  release:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: quota-watch-native
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha256sum -c SHA256SUMS
+          gh release create "v0.1.$GITHUB_RUN_NUMBER" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --notes "EspHub native application for StopWatch." *.bin esphub.json SHA256SUMS
