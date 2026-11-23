@@ -10,6 +10,11 @@ details{margin:14px 0}summary{cursor:pointer}pre{padding:10px 14px;overflow:auto
 <button id="connect">Connect watch</button> <button id="reload" disabled>Refresh accounts</button>
 <details id="help"><summary>Can't find your watch?</summary><p>Turn on Bluetooth and disconnect the watch from other browser tabs or computers. On macOS, allow your browser under System Settings → Privacy &amp; Security → Bluetooth.</p><button id="nearby">Show all nearby devices</button></details>
 <div id="accounts"></div></section>
+<section id="client-settings" hidden><h2>OAuth client settings</h2>
+<p>Save the public client ID for your application on this watch. Saving an ID does not sign in to an account.</p>
+<label>Provider <select id="client-provider"><option>Codex</option><option>Claude</option></select></label>
+<label>Client ID <input id="client-id" maxlength="128" autocomplete="off" spellcheck="false"></label>
+<button id="client-save">Save client ID</button> <button id="client-clear">Clear</button></section>
 <section><h2>Add or update a subscription</h2><p>Select an exported account card, check the email address, then save it to your watch.</p>
 <details><summary>Export a Claude or Codex account card</summary><p>Clone the <a href="https://github.com/e7h4n/quota-watch">Quota Watch repository</a>. Use a separate client profile and output file for each account.</p>
 <h3>ChatGPT / Codex</h3><p>From the repository, run this with the Codex profile you want to sync. Use <code>codex login</code> first if needed.</p><pre>python3 tools/account_card.py codex --out ~/Downloads/codex-watch.json</pre>
@@ -20,4 +25,4 @@ details{margin:14px 0}summary{cursor:pointer}pre{padding:10px 14px;overflow:auto
   }
 }</pre></details>
 <input id="file" aria-label="Choose an account card" type="file" accept=".json,application/json"><p id="preview"></p><button id="save" disabled>Save to watch</button></section>
-<p id="status" role="status"></p></main><script type="module" src="app.mjs?v=2"></script></html>
+<p id="status" role="status"></p></main><script type="module" src="app.mjs?v=3"></script></html>
