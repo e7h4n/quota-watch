@@ -9,6 +9,14 @@ jobs:
       - uses: actions/checkout@v4
       - run: node --test tests/*.test.mjs
       - run: python3 -m unittest discover -s tests
+      - name: Check provider usage responses
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libcjson-dev
+          cc -std=c11 -Wall -Wextra -Werror -fsanitize=undefined -Ifirmware/main \
+            firmware/main/subscription_usage.c tests/subscription_usage.c \
+            $(pkg-config --cflags --libs libcjson) -lm -o "$RUNNER_TEMP/quota-usage-test"
+          "$RUNNER_TEMP/quota-usage-test"
   build:
     needs: test
     runs-on: ubuntu-latest

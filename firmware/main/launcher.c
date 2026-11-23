@@ -3,7 +3,6 @@
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "okou_agent_ext.h"
 #include "okou_agent.h"
 
 /* Identifies the managed native application in the USB installation package. */
@@ -21,11 +20,7 @@ void launcher_start(void)
         if (deadline < 3000000) deadline = 3000000;
         while (gpio_get_level(GPIO_NUM_1) == 0) {
             if (esp_timer_get_time() >= deadline) {
-                esp_err_t err = okou_nvs_set_u8(OKOU_KEY_HOLD, 1);
-                if (err == ESP_OK) {
-                    err = okou_enter_bootloader();
-                    okou_nvs_erase(OKOU_KEY_HOLD);
-                }
+                esp_err_t err = okou_enter_bootloader();
                 ESP_LOGE(TAG, "Entering bootloader: %s", esp_err_to_name(err));
                 break;
             }

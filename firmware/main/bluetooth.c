@@ -1,4 +1,5 @@
 #include "quota.h"
+#include "oauth_settings.h"
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
@@ -14,6 +15,8 @@
 void ble_store_config_init(void);
 #define QUOTA_UUID(n) BLE_UUID128_INIT(0x51,0x8a,0x43,0x2d,0xad,0x81,0xfb,0xa4,0x37,0x4c,0x18,0x3e,n,0,0,0)
 static const ble_uuid128_t service=QUOTA_UUID(1), command=QUOTA_UUID(2), state=QUOTA_UUID(3);
+static const ble_uuid128_t codex_id=QUOTA_UUID(4), claude_id=QUOTA_UUID(5);
+#define CLIENT_ID_FLAGS (BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_READ_AUTHEN | BLE_GATT_CHR_F_WRITE_AUTHEN | BLE_GATT_CHR_F_READ_ENC | BLE_GATT_CHR_F_WRITE_ENC)
 static uint8_t own_type, selected;
 static quota_card staging;
 static int received=-1, passkey=-1;
@@ -80,6 +83,8 @@ static const struct ble_gatt_svc_def services[]={
     {.type=BLE_GATT_SVC_TYPE_PRIMARY,.uuid=&service.u,.characteristics=(struct ble_gatt_chr_def[]){
         {.uuid=&command.u,.access_cb=access,.flags=BLE_GATT_CHR_F_WRITE|BLE_GATT_CHR_F_WRITE_ENC|BLE_GATT_CHR_F_WRITE_AUTHEN},
         {.uuid=&state.u,.access_cb=access,.flags=BLE_GATT_CHR_F_READ|BLE_GATT_CHR_F_READ_ENC|BLE_GATT_CHR_F_READ_AUTHEN},
+        {.uuid=&codex_id.u,.access_cb=client_id_access,.arg=(void*)0,.flags=CLIENT_ID_FLAGS},
+        {.uuid=&claude_id.u,.access_cb=client_id_access,.arg=(void*)1,.flags=CLIENT_ID_FLAGS},
         {0}}},{0}
 };
 static int gap(struct ble_gap_event *e,void *arg);
@@ -108,6 +113,7 @@ static int gap(struct ble_gap_event *e,void *arg) {
         if(e->enc_change.status) ble_gap_terminate(e->enc_change.conn_handle,BLE_ERR_REM_USER_CONN_TERM);
         break;
     case BLE_GAP_EVENT_DISCONNECT:
+        client_id_cancel();
         received=-1; selected=0; code(-1); advertise();
         break;
     }
@@ -131,6 +137,7 @@ static void sync_host(void) {
     advertise();
 }
 static void reset_host(int reason) {
+    client_id_cancel();
     received=-1; selected=0; code(-1);
     __atomic_store_n(&ready,false,__ATOMIC_RELEASE);
 }

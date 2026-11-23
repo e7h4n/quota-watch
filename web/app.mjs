@@ -1,7 +1,12 @@
+import {readClientId,writeClientId} from './client-id.mjs';
 import {uuid,encode,list,save} from './protocol.mjs?v=2';
 const el=id=>document.getElementById(id);
 let device,command,state,card,busy=false;
+let clientCharacteristics = [];
+const selectedClient = () => clientCharacteristics[el('client-provider').selectedIndex];
 function update() {
+  el('client-settings').hidden = !selectedClient();
+  for (const id of ['client-provider','client-id','client-clear','client-save']) el(id).disabled = busy || !selectedClient();
   el('connection').textContent=state?'Connected':'Disconnected';
   el('connect').textContent=state?'Disconnect':'Connect watch';
   el('connect').disabled=busy || !navigator.bluetooth;
@@ -19,6 +24,8 @@ async function run(action) {
 }
 function disconnected() {
   command=state=null;
+  clientCharacteristics = [];
+  el('client-id').value = '';
   el('accounts').replaceChildren();
   update();
 }
@@ -59,8 +66,29 @@ async function connect(showAll) {
     command=await service.getCharacteristic(uuid(2)); state=await service.getCharacteristic(uuid(3));
     const clock=new Uint8Array(5);clock[0]=6;new DataView(clock.buffer).setUint32(1,Math.floor(Date.now()/1000),true);
     await write(clock); await refresh();
+    const chars = await service.getCharacteristics();
+    const settings = [4,5].map(n => chars.find(c => c.uuid === uuid(n)));
+    if (settings.every(Boolean)) {
+      clientCharacteristics = settings;
+      el('client-id').value = await readClientId(selectedClient());
+    }
   } catch(error) {device.gatt.disconnect();disconnected();throw error;}
 }
+el('client-provider').onchange = () => run(async () => {
+  el('client-id').value = '';
+  el('client-id').value = await readClientId(selectedClient());
+});
+async function storeClient(id) {
+  await writeClientId(selectedClient(), id);
+  el('client-id').value = id;
+  el('status').textContent = id ? 'Client ID saved and verified on the watch.' : 'Client ID cleared.';
+}
+el('client-save').onclick = () => run(async () => {
+  const id = el('client-id').value.trim();
+  if (!id) throw Error('Enter a client ID or choose Clear.');
+  await storeClient(id);
+});
+el('client-clear').onclick = () => run(() => storeClient(''));
 el('connect').onclick=()=>run(()=>connect(false));
 el('nearby').onclick=()=>run(()=>connect(true));
 el('reload').onclick=()=>run(refresh);
