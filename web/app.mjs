@@ -1,4 +1,4 @@
-import {uuid,encode,list,save} from './protocol.mjs';
+import {uuid,encode,list,save} from './protocol.mjs?v=2';
 const el=id=>document.getElementById(id);
 let device,command,state,card,busy=false;
 function update() {
