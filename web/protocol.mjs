@@ -2,17 +2,17 @@ export const uuid = n => '0000000' + n + '-3e18-4c37-a4fb-81ad2d438a51';
 const encoder = new TextEncoder(), decoder = new TextDecoder();
 
 function integer(x, min, max, name) {
-  if (!Number.isInteger(x) || x < min || x > max) throw Error('无效字段：' + name);
+  if (!Number.isInteger(x) || x < min || x > max) throw Error('Invalid field: ' + name);
   return x;
 }
 export function encode(card) {
   if (card.version !== 1 || !['ChatGPT','Claude'].includes(card.provider) ||
-      !/^[a-f0-9]{32}$/.test(card.id)) throw Error('请使用 Quota Watch 导出的账号卡');
+      !/^[a-f0-9]{32}$/.test(card.id)) throw Error('Choose an exported Quota Watch account card.');
   const bytes = new Uint8Array(184), view = new DataView(bytes.buffer);
   function string(offset, capacity, s) {
-    if (typeof s !== 'string' || !s.trim() || /[\x00-\x1f\x7f]/.test(s)) throw Error('账号信息不完整');
+    if (typeof s !== 'string' || !s.trim() || /[\x00-\x1f\x7f]/.test(s)) throw Error('The account card is missing valid account information.');
     const value = encoder.encode(s);
-    if (value.length >= capacity) throw Error('账号字段太长');
+    if (value.length >= capacity) throw Error('An account field is too long.');
     bytes.set(value,offset);
   }
   view.setUint32(0,integer(card.captured,1600000000,0xffffffff,'captured'),true);
@@ -28,11 +28,11 @@ export function encode(card) {
   return bytes;
 }
 export function decode(bytes) {
-  if (bytes.length !== 184) throw Error('账号卡长度错误');
+  if (bytes.length !== 184) throw Error('Unexpected account card length.');
   const v = new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
   function string(offset,length) {
     const field = bytes.subarray(offset,offset+length), end = field.indexOf(0);
-    if (end < 0) throw Error('账号卡文本无效');
+    if (end < 0) throw Error('Invalid text in the account card.');
     return decoder.decode(field.subarray(0,end));
   }
   const value = n => n < 0 ? null : n;
@@ -53,7 +53,7 @@ export async function list(write,read) {
   for(let i=0;i<8;i++) {
     await write([4,i]);
     const v=await read();
-    if(v.byteLength<2 || v.getUint8(0)!==1 || v.getUint8(1)>8) throw Error('手表协议不匹配');
+    if(v.byteLength<2 || v.getUint8(0)!==1 || v.getUint8(1)>8) throw Error('The watch returned an incompatible protocol version or account count.');
     if(i>=v.getUint8(1)) break;
     accounts.push(decode(new Uint8Array(v.buffer,v.byteOffset+2,v.byteLength-2)));
     if(accounts.length===v.getUint8(1)) break;
