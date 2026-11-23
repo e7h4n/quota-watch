@@ -92,7 +92,7 @@ extern "C" void app_main() {
     bluetooth_start();
     const int64_t boot=esp_timer_get_time();
     unsigned index=0, generation=0;
-    bool validated=false, dirty=true, touching=false, next_down=false, prev_down=false;
+    bool reported_ready=false, dirty=true, touching=false, next_down=false, prev_down=false;
     int start_x=0,last_x=0, prior_code=-2, direction=0;
     int64_t animation=boot;
     float from_short=0,from_week=0,inner=0,outer=0;
@@ -154,8 +154,9 @@ extern "C" void app_main() {
             board_present();
             if(t>=1) animation=0;
         }
-        if(!validated && tick-boot>=10000000 && bluetooth_ready()) {
-            ESP_ERROR_CHECK(okou_app_mark_valid()); validated=true;
+        if(!reported_ready && tick-boot>=10000000 && bluetooth_ready()) {
+            okou_event("quota.ready", nullptr);
+            reported_ready=true;
         }
         vTaskDelay(pdMS_TO_TICKS(28));
     }
