@@ -1,4 +1,5 @@
 #include "board.h"
+#include "trending.h"
 #include "quota.h"
 #include "esp_timer.h"
 #include "esp_task_wdt.h"
@@ -24,6 +25,60 @@ void text(const char *str,int x,int y,const lgfx::IFont *font,unsigned color,
     auto &c=board_canvas();
     c.setFont(font); c.setTextSize(1); c.setTextColor(color); c.setTextDatum(align);
     c.drawString(str,x,y);
+}
+void project_title(const char *repo) {
+    auto &c=board_canvas();
+    c.setFont(&fonts::FreeSansBold18pt7b);
+    if(c.textWidth(repo)<=386) {
+        text(repo,234,196,&fonts::FreeSansBold18pt7b,ink);
+        return;
+    }
+    // GitHub repository slugs are ASCII. Wrap instead of clipping the round face.
+    c.setFont(&fonts::Font4);
+    char lines[4][101]={};
+    unsigned rows=0;
+    while(*repo && rows<4) {
+        char *line=lines[rows++];
+        size_t n=strlen(repo);
+        memcpy(line,repo,n+1);
+        while(n>1 && c.textWidth(line)>378) line[--n]=0;
+        repo+=n;
+        if(rows==4 && *repo) {
+            while(n && c.textWidth(line)>340) line[--n]=0;
+            strcat(line,"...");
+        }
+    }
+    for(unsigned i=0;i<rows;i++)
+        text(lines[i],234,199+27*int(i)-13*int(rows-1),&fonts::Font4,ink);
+}
+
+void trend_face(const trend_view &view,unsigned index,time_t now) {
+    char label[80];
+    text("GitHub Trending",234,81,&fonts::Font4,muted);
+    if(view.count) {
+        snprintf(label,sizeof label,"#%u / %u",index+1,view.count);
+        text(label,234,111,&fonts::Font2,blue);
+        text(view.project.owner,234,140,&fonts::Font2,muted);
+        project_title(view.project.repo);
+        snprintf(label,sizeof label,"%lu stars",(unsigned long)view.project.stars);
+        text(label,234,274,&fonts::FreeSansBold18pt7b,lime);
+        const bool stale=now-view.fetched>=86400;
+        if(view.project.daily>=0) {
+            snprintf(label,sizeof label,"+%ld %s",(long)view.project.daily,stale?"that day":"today");
+            text(label,234,313,&fonts::Font4,ink);
+        }
+        if(stale || view.failed) {
+            struct tm date;
+            gmtime_r(&view.fetched,&date);
+            strftime(label,sizeof label,"Last updated %b %d UTC",&date);
+            text(label,234,347,&fonts::Font2,muted);
+        }
+        text("Tap for next project",234,381,&fonts::Font2,muted);
+    } else {
+        text(view.failed?"Trending unavailable":"Loading projects",234,208,&fonts::Font4,ink);
+        text(view.failed?"Check Wi-Fi to refresh":"Waiting for GitHub",234,250,&fonts::Font2,muted);
+    }
+    text("Select: accounts",234,408,&fonts::Font2,muted);
 }
 void ring(int radius,float percent,unsigned color) {
     auto &c=board_canvas();
@@ -90,9 +145,13 @@ extern "C" void app_main() {
         vTaskDelay(pdMS_TO_TICKS(50));
     }
     bluetooth_start();
+    trending_start();
     const int64_t boot=esp_timer_get_time();
     unsigned index=0, generation=0;
     bool reported_ready=false, dirty=true, touching=false, next_down=false, prev_down=false;
+    bool show_trends=true;
+    unsigned project_index=0, trend_generation=0;
+    int start_y=0,last_y=0;
     int start_x=0,last_x=0, prior_code=-2, direction=0;
     int64_t animation=boot;
     float from_short=0,from_week=0,inner=0,outer=0;
@@ -105,16 +164,36 @@ extern "C" void app_main() {
         int step=0;
         if(code<0) {
             if(input.next && !next_down) step=1;
-            if(input.select && !prev_down) step=-1;
+            if(input.select && !prev_down) {
+                show_trends=!show_trends;
+                dirty=true;
+            }
             if(input.touch_valid) {
                 if(input.touch) {
-                    if(!touching) start_x=input.x;
-                    last_x=input.x;
-                } else if(touching && std::abs(last_x-start_x)>42) step=last_x<start_x?1:-1;
+                    if(!touching) {start_x=input.x; start_y=input.y;}
+                    last_x=input.x; last_y=input.y;
+                } else if(touching) {
+                    if(std::abs(last_x-start_x)>42) step=last_x<start_x?1:-1;
+                    else if(show_trends && std::abs(last_y-start_y)<32) step=1;
+                }
                 touching=input.touch;
             }
         } else touching=false;
         next_down=input.next; prev_down=input.select;
+        trend_view trend={};
+        if(show_trends) {
+            trend=trending_read(project_index);
+            if(trend.count) project_index%=trend.count;
+            if(step && trend.count>1) {
+                project_index=(int(project_index)+step+trend.count)%trend.count;
+                trend=trending_read(project_index);
+                if(trend.count) project_index%=trend.count;
+                dirty=true;
+            }
+            dirty|=trend_generation!=trend.generation;
+            trend_generation=trend.generation;
+            step=0;
+        }
         unsigned gen=accounts_generation();
         quota_card card={};
         unsigned count=accounts_read(index,&card);
@@ -138,6 +217,8 @@ extern "C" void app_main() {
                 text("Bluetooth pairing",234,160,&fonts::Font4,muted);
                 text(digits,234,229,&fonts::FreeSansBold24pt7b,lime);
                 text("Enter this code on your computer",234,293,&fonts::Font2,ink);
+            } else if(show_trends) {
+                trend_face(trend,project_index,now);
             } else if(!count) {
                 text("Quota Watch",234,176,&fonts::FreeSansBold24pt7b,ink);
                 text("Add an account via Bluetooth",234,254,&fonts::Font4,muted);

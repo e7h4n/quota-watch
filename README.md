@@ -1,6 +1,6 @@
 # Quota Watch
 
-M5Stack StopWatch 的 EspHub 原生应用。左右滑动或按侧键切换账号。内环显示 5 小时剩余额度，外环显示 7 天剩余额度。表盘中央显示邮箱、服务名和套餐，有余额的 ChatGPT 账号还会显示 credits。到期的数据等待下次导入，缺失值显示为 `--`。电脑配置页可查看 Codex 可用 Reset 次数。
+M5Stack StopWatch 的 EspHub 原生应用。开机默认显示 GitHub Trending 日榜，每页显示一个仓库的总 stars 和今日新增。轻点屏幕或短按 Next 切到下一个项目，左右滑动可双向浏览。手表联网后每小时直接从 GitHub 更新一次。短按 Select 可在趋势页和订阅表盘间切换，订阅页支持左右滑动或按 Next 切换账号。内环显示 5 小时剩余额度，外环显示 7 天剩余额度。表盘中央显示邮箱、服务名和套餐，有余额的 ChatGPT 账号还会显示 credits。到期的数据等待下次导入，缺失值显示为 `--`。电脑配置页可查看 Codex 可用 Reset 次数。
 
 ## 安装
 
