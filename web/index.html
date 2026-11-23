@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark"><title>Quota Watch · 蓝牙配置</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eff2eb;color:#19271f;font:16px/1.65 Inter,system-ui,sans-serif}main{max-width:720px;margin:8vh auto;padding:0 20px}header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #b9c4b8;padding-bottom:14px}h1{letter-spacing:-.055em;font-size:2.4rem;margin:0}h2{font-size:1.15rem}section{margin:22px 0;padding:24px;border-radius:18px;background:#fafcf7}button{border:1px solid #97a599;background:#fff;border-radius:8px;padding:9px 15px;font:inherit;color:#19271f;cursor:pointer}button:disabled{opacity:.5;cursor:default}#connect{color:#fff;background:#223b2b}.account{padding:12px 0;border-bottom:1px solid #d8dfd4;display:grid;gap:2px;overflow-wrap:anywhere}.account button{justify-self:end}.account small,#status{color:#4b6150}a{color:#315c3f}#status{min-height:1.65em}input{max-width:100%}
+</style>
+<main><header><h1>Quota Watch</h1><span id="connection">未连接</span></header>
+<section><h2>手表上的账号</h2><p>在电脑用 Chrome 或 Edge 连接 Quota Watch，并在系统提示中输入手表显示的六位码。</p>
+<button id="connect">连接手表</button> <button id="reload" disabled>重新读取</button><div id="accounts"></div></section>
+<section><h2>添加或更新订阅</h2><p>从本机官方客户端导出账号卡，选择文件后核对邮箱，再写入手表。</p><p><a href="https://github.com/e7h4n/quota-watch#账号卡">如何导出 Claude 或 Codex 账号卡</a></p>
+<input id="file" aria-label="选择账号卡" type="file" accept=".json,application/json"><p id="preview"></p><button id="save" disabled>写入手表</button></section>
+<p id="status" role="status"></p></main><script type="module" src="app.mjs"></script></html>

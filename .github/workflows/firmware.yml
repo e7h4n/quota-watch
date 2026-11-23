@@ -3,7 +3,14 @@ on: [push, workflow_dispatch]
 permissions:
   contents: read
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node --test tests/*.test.mjs
+      - run: python3 -m unittest discover -s tests
   build:
+    needs: test
     runs-on: ubuntu-latest
     container: espressif/idf:v5.5.2
     steps:

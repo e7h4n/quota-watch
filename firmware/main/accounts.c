@@ -16,7 +16,8 @@ static bool printable(const char *text, size_t size) {
     return true;
 }
 static bool valid(const quota_card *c) {
-    return printable(c->id,sizeof c->id) && printable(c->email,sizeof c->email) &&
+    if(c->id[32] || strspn(c->id,"0123456789abcdef")!=32) return false;
+    return printable(c->email,sizeof c->email) &&
         printable(c->tier,sizeof c->tier) && c->provider<=1 && !c->reserved &&
         (c->short_pct<=100 || c->short_pct==255) && (c->week_pct<=100 || c->week_pct==255) &&
         c->credit_cents>=-1 && c->resets>=-1 && c->captured>=1600000000;
