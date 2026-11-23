@@ -39,7 +39,7 @@ int remaining(uint8_t pct,uint32_t reset,time_t now) {
     return pct>100 || now<1600000000 || (reset && now>=reset) ? -1 : pct;
 }
 void row(int y,const char *period,int pct,uint32_t reset,time_t now,unsigned color) {
-    char percent[8]="--", left[32]="--";
+    char percent[16]="--", left[32]="--";
     if(pct>=0) snprintf(percent,sizeof percent,"%d%%",pct);
     if(reset && now>=1600000000) {
         int minutes=std::max<int64_t>(0,(int64_t(reset)-now+59)/60);
@@ -66,6 +66,12 @@ void face(const quota_card &card,int short_pct,int week_pct,float inner,float ou
     text(email,234+dx,139,&fonts::Font2,muted);
     text(card.provider?"Claude":"ChatGPT",234+dx,195,&fonts::FreeSansBold24pt7b,ink);
     text(card.tier,234+dx,245,&fonts::Font4,muted);
+    if(now<1600000000) text("Waiting for clock",234,274,&fonts::Font2,muted);
+    else if(now-time_t(card.captured)>=3600) {
+        char age[40];
+        snprintf(age,sizeof age,"Synced %lldh ago",(long long)((now-card.captured)/3600));
+        text(age,234,274,&fonts::Font2,muted);
+    }
     if(!card.provider && card.credit_cents>0) {
         char credits[40];
         snprintf(credits,sizeof credits,"%ld.%02ld credits",long(card.credit_cents/100),long(card.credit_cents%100));
@@ -140,7 +146,9 @@ extern "C" void app_main() {
                 int h=remaining(card.short_pct,card.short_reset,now),w=remaining(card.week_pct,card.week_reset,now);
                 float rest=(1-t)*(1-t)*(1-t);
                 inner=std::max(0,h)*(1-rest)+from_short*rest;
-                outer=std::max(0,w)*(1-rest)+from_week*rest;
+                float outer_t=direction?t:std::clamp((t-.08f)/.92f,0.f,1.f);
+                float outer_rest=(1-outer_t)*(1-outer_t)*(1-outer_t);
+                outer=std::max(0,w)*(1-outer_rest)+from_week*outer_rest;
                 face(card,h,w,inner,outer,int(30*direction*rest),now);
             }
             board_present();
