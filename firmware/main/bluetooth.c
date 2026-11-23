@@ -118,10 +118,15 @@ static void sync_host(void) {
     ESP_ERROR_CHECK(ble_hs_id_infer_auto(0,&own_type));
     struct ble_hs_adv_fields fields={0},response={0};
     fields.flags=BLE_HS_ADV_F_DISC_GEN|BLE_HS_ADV_F_BREDR_UNSUP;
-    fields.uuids128=(ble_uuid128_t*)&service; fields.num_uuids128=1; fields.uuids128_is_complete=1;
+    // A passive scan should see the product name without requesting a scan response.
+    static uint8_t name[]=CONFIG_BT_NIMBLE_SVC_GAP_DEVICE_NAME;
+    fields.name=name;
+    fields.name_len=sizeof(name)-1;
+    fields.name_is_complete=1;
     ESP_ERROR_CHECK(ble_gap_adv_set_fields(&fields));
-    const char *name=ble_svc_gap_device_name();
-    response.name=(uint8_t*)name; response.name_len=strlen(name); response.name_is_complete=1;
+    response.uuids128=(ble_uuid128_t*)&service;
+    response.num_uuids128=1;
+    response.uuids128_is_complete=1;
     ESP_ERROR_CHECK(ble_gap_adv_rsp_set_fields(&response));
     advertise();
 }
@@ -134,7 +139,6 @@ void bluetooth_start(void) {
     ESP_ERROR_CHECK(nimble_port_init());
     ble_store_config_init(); ble_svc_gap_init(); ble_svc_gatt_init();
     ESP_ERROR_CHECK(ble_gatts_count_cfg(services)); ESP_ERROR_CHECK(ble_gatts_add_svcs(services));
-    ESP_ERROR_CHECK(ble_svc_gap_device_name_set("Quota Watch"));
     ble_hs_cfg.sm_io_cap=BLE_SM_IO_CAP_DISP_ONLY;
     ble_hs_cfg.sm_mitm=1; ble_hs_cfg.sm_sc=1; ble_hs_cfg.sm_sc_only=1; ble_hs_cfg.sm_bonding=0;
     ble_hs_cfg.sync_cb=sync_host; ble_hs_cfg.reset_cb=reset_host;
