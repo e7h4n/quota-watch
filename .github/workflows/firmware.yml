@@ -9,6 +9,10 @@ jobs:
       - uses: actions/checkout@v4
       - run: node --test tests/*.test.mjs
       - run: python3 -m unittest discover -s tests
+      - name: Check GitHub Trending parsing
+        run: |
+          cc -std=c11 -Wall -Wextra -Werror -Ifirmware/main firmware/main/trend_parse.c tests/trend_parse.c -o "$RUNNER_TEMP/trend-test"
+          "$RUNNER_TEMP/trend-test"
       - name: Check provider usage responses
         run: |
           sudo apt-get update -qq
